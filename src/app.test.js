@@ -21,3 +21,6 @@ describe("API Tests", () => {
     expect(res.body.length).toBe(3);
   });
 });
+afterAll((done) => {
+  done();
+});
