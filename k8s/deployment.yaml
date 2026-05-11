@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: devops-pipeline
+  labels:
+    app: devops-pipeline
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: devops-pipeline
+  template:
+    metadata:
+      labels:
+        app: devops-pipeline
+    spec:
+      containers:
+        - name: devops-pipeline
+          image: remziberkyez/devops-pipeline:latest
+          ports:
+            - containerPort: 3000
+          envFrom:
+            - configMapRef:
+                name: devops-pipeline-config
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 3
