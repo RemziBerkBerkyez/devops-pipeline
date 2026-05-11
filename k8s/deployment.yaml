@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: devops-pipeline
-          image: remziberkyez/devops-pipeline:43ec6752dc250cdcee84e7ed3470c832120d2f04
+          image: remziberkyez/devops-pipeline:566b3cc320c38e4f1ea460df0f1cea8536fa593a
           ports:
             - containerPort: 3000
           envFrom:
