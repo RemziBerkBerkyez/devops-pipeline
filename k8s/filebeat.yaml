@@ -7,7 +7,13 @@ data:
     filebeat.inputs:
     - type: container
       paths:
-        - /var/log/containers/devops-pipeline*.log
+        - /var/lib/docker/containers/*/*.log
+    processors:
+    - add_kubernetes_metadata:
+        host: ${NODE_NAME}
+        matchers:
+        - logs_path:
+            logs_path: "/var/lib/docker/containers/"
     output.logstash:
       hosts: ["logstash-service:5044"]
 ---
@@ -28,11 +34,16 @@ spec:
         - name: filebeat
           image: docker.elastic.co/beats/filebeat:8.11.0
           args: ["-c", "/etc/filebeat/filebeat.yml", "-e"]
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
           volumeMounts:
             - name: config
               mountPath: /etc/filebeat
-            - name: varlog
-              mountPath: /var/log/containers
+            - name: varlibdocker
+              mountPath: /var/lib/docker/containers
               readOnly: true
           resources:
             limits:
@@ -42,6 +53,6 @@ spec:
         - name: config
           configMap:
             name: filebeat-config
-        - name: varlog
+        - name: varlibdocker
           hostPath:
-            path: /var/log/containers
+            path: /var/lib/docker/containers
