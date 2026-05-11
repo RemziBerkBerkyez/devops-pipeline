@@ -2,3 +2,4 @@ node_modules/
 npm-debug.log
 .envkubectl
 minikube-linux-amd64
+logs/

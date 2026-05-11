@@ -1,5 +1,6 @@
 const express = require("express");
 const promClient = require("prom-client");
+const logger = require("./logger");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -7,7 +8,6 @@ const PORT = process.env.PORT || 3000;
 const register = new promClient.Registry();
 promClient.collectDefaultMetrics({ register });
 
-// Custom metric — HTTP request counter
 const httpRequestCounter = new promClient.Counter({
   name: "http_requests_total",
   help: "Total HTTP requests",
@@ -17,7 +17,7 @@ const httpRequestCounter = new promClient.Counter({
 
 app.use(express.json());
 
-// Metrics middleware
+// Logging + metrics middleware
 app.use((req, res, next) => {
   res.on("finish", () => {
     httpRequestCounter.inc({
@@ -25,11 +25,16 @@ app.use((req, res, next) => {
       route: req.path,
       status: res.statusCode,
     });
+    logger.info({
+      method: req.method,
+      route: req.path,
+      status: res.statusCode,
+      message: "HTTP Request",
+    });
   });
   next();
 });
 
-// Health check endpoint
 app.get("/health", (req, res) => {
   res.status(200).json({
     status: "healthy",
@@ -37,7 +42,6 @@ app.get("/health", (req, res) => {
   });
 });
 
-// Ana endpoint
 app.get("/", (req, res) => {
   res.json({
     message: "DevOps Pipeline API",
@@ -45,8 +49,8 @@ app.get("/", (req, res) => {
   });
 });
 
-// Ürünler endpoint
 app.get("/products", (req, res) => {
+  logger.info({ message: "Products endpoint called" });
   res.json([
     { id: 1, name: "Laptop", price: 999 },
     { id: 2, name: "Mouse", price: 29 },
@@ -54,14 +58,13 @@ app.get("/products", (req, res) => {
   ]);
 });
 
-// Prometheus metrics endpoint
 app.get("/metrics", async (req, res) => {
   res.set("Content-Type", register.contentType);
   res.end(await register.metrics());
 });
 
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  logger.info({ message: `Server running on port ${PORT}` });
 });
 
 module.exports = app;
