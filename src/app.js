@@ -1,10 +1,35 @@
 const express = require("express");
+const promClient = require("prom-client");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Prometheus metrics
+const register = new promClient.Registry();
+promClient.collectDefaultMetrics({ register });
+
+// Custom metric — HTTP request counter
+const httpRequestCounter = new promClient.Counter({
+  name: "http_requests_total",
+  help: "Total HTTP requests",
+  labelNames: ["method", "route", "status"],
+  registers: [register],
+});
+
 app.use(express.json());
 
-// Health check endpoint — K8s ve monitoring için kritik
+// Metrics middleware
+app.use((req, res, next) => {
+  res.on("finish", () => {
+    httpRequestCounter.inc({
+      method: req.method,
+      route: req.path,
+      status: res.statusCode,
+    });
+  });
+  next();
+});
+
+// Health check endpoint
 app.get("/health", (req, res) => {
   res.status(200).json({
     status: "healthy",
@@ -27,6 +52,12 @@ app.get("/products", (req, res) => {
     { id: 2, name: "Mouse", price: 29 },
     { id: 3, name: "Keyboard", price: 79 },
   ]);
+});
+
+// Prometheus metrics endpoint
+app.get("/metrics", async (req, res) => {
+  res.set("Content-Type", register.contentType);
+  res.end(await register.metrics());
 });
 
 app.listen(PORT, () => {
